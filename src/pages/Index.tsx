@@ -4,7 +4,10 @@ import ApiSettings from '@/components/ApiSettings';
 import AudioUpload from '@/components/AudioUpload';
 import TranscriptionDisplay from '@/components/TranscriptionDisplay';
 import HistoryPanel, { HistoryItem } from '@/components/HistoryPanel';
+import Header from '@/components/Header';
 import { Mic, Sparkles } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const Index = () => {
   const [apiKey, setApiKey] = useState('');
@@ -14,6 +17,8 @@ const Index = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const { theme } = useTheme();
 
   // โหลดข้อมูลจาก localStorage เมื่อเริ่มต้น
   useEffect(() => {
@@ -42,8 +47,8 @@ const Index = () => {
     setApiKey(newApiKey);
     localStorage.setItem('gemini-api-key', newApiKey);
     toast({
-      title: "บันทึกสำเร็จ",
-      description: "API Key ถูกบันทึกแล้ว"
+      title: t('apiKeySaved'),
+      description: t('apiKeySavedDesc')
     });
   };
 
@@ -129,8 +134,8 @@ const Index = () => {
         localStorage.setItem('transcription-history', JSON.stringify(updatedHistory));
         
         toast({
-          title: "ถอดเสียงสำเร็จ",
-          description: "ไฟล์เสียงถูกแปลงเป็นข้อความด้วย Gemini AI แล้ว"
+          title: t('transcriptionSuccess'),
+          description: t('transcriptionSuccessDesc')
         });
       } else {
         throw new Error('ไม่สามารถถอดเสียงได้');
@@ -149,90 +154,6 @@ const Index = () => {
   };
 
   // ใช้ Web Speech API ของเบราว์เซอร์สำหรับแปลงข้อความเป็นเสียง
-  const handleTextToSpeech = async (text: string) => {
-    if (!text.trim()) {
-      toast({
-        title: "ไม่มีข้อความ",
-        description: "กรุณาใส่ข้อความที่ต้องการแปลงเป็นเสียง",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // ตรวจสอบว่าเบราว์เซอร์รองรับ Speech Synthesis หรือไม่
-    if (!('speechSynthesis' in window)) {
-      toast({
-        title: "ไม่รองรับ",
-        description: "เบราว์เซอร์ของคุณไม่รองรับการแปลงข้อความเป็นเสียง",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsGeneratingAudio(true);
-    
-    try {
-      // หยุดการพูดที่กำลังทำงานอยู่
-      speechSynthesis.cancel();
-      
-      // สร้าง utterance object
-      const utterance = new SpeechSynthesisUtterance(text);
-      setCurrentUtterance(utterance);
-      
-      // ตั้งค่าเสียง
-      utterance.lang = 'th-TH'; // ภาษาไทย
-      utterance.rate = 0.9; // ความเร็วในการพูด
-      utterance.pitch = 1; // ระดับเสียง
-      utterance.volume = 1; // ระดับความดัง
-
-      // ลองหาเสียงภาษาไทยจากที่มีอยู่
-      const voices = speechSynthesis.getVoices();
-      const thaiVoice = voices.find(voice => voice.lang.includes('th') || voice.lang.includes('TH'));
-      if (thaiVoice) {
-        utterance.voice = thaiVoice;
-      }
-
-      // Event listeners
-      utterance.onstart = () => {
-        console.log('เริ่มการพูด');
-      };
-
-      utterance.onend = () => {
-        setIsGeneratingAudio(false);
-        setCurrentUtterance(null);
-        toast({
-          title: "เล่นเสียงเสร็จสิ้น",
-          description: "การแปลงข้อความเป็นเสียงเสร็จสมบูรณ์แล้ว"
-        });
-      };
-
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
-        setIsGeneratingAudio(false);
-        setCurrentUtterance(null);
-        toast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถแปลงข้อความเป็นเสียงได้",
-          variant: "destructive"
-        });
-      };
-
-      // เริ่มการพูด
-      speechSynthesis.speak(utterance);
-      
-    } catch (error) {
-      console.error('Error generating speech:', error);
-      setIsGeneratingAudio(false);
-      setCurrentUtterance(null);
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถแปลงข้อความเป็นเสียงได้",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // หยุดการแปลงข้อความเป็นเสียง
   const handleStopTextToSpeech = () => {
     speechSynthesis.cancel();
     setIsGeneratingAudio(false);
@@ -307,8 +228,100 @@ const Index = () => {
     });
   };
 
+  // Improved text-to-speech function with immediate playback
+  const handleTextToSpeech = async (text: string) => {
+    if (!text.trim()) {
+      toast({
+        title: "No Text",
+        description: "Please enter text to convert to speech",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!('speechSynthesis' in window)) {
+      toast({
+        title: "Not Supported",
+        description: "Your browser doesn't support text-to-speech",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGeneratingAudio(true);
+    
+    try {
+      // Stop any current speech
+      speechSynthesis.cancel();
+      
+      // Wait a bit for the cancel to take effect
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      setCurrentUtterance(utterance);
+      
+      utterance.lang = 'th-TH';
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      // Try to find Thai voice
+      const voices = speechSynthesis.getVoices();
+      const thaiVoice = voices.find(voice => voice.lang.includes('th') || voice.lang.includes('TH'));
+      if (thaiVoice) {
+        utterance.voice = thaiVoice;
+      }
+
+      utterance.onstart = () => {
+        console.log('Speech started');
+      };
+
+      utterance.onend = () => {
+        setIsGeneratingAudio(false);
+        setCurrentUtterance(null);
+        toast({
+          title: t('apiKeySaved'),
+          description: "Speech playback completed"
+        });
+      };
+
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        setIsGeneratingAudio(false);
+        setCurrentUtterance(null);
+        toast({
+          title: "Error",
+          description: "Cannot convert text to speech",
+          variant: "destructive"
+        });
+      };
+
+      // Start speaking immediately
+      speechSynthesis.speak(utterance);
+      
+    } catch (error) {
+      console.error('Error generating speech:', error);
+      setIsGeneratingAudio(false);
+      setCurrentUtterance(null);
+      toast({
+        title: "Error",
+        description: "Cannot convert text to speech",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const themeClasses = theme === 'light' 
+    ? "min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100"
+    : "min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900";
+
+  const textClasses = theme === 'light' ? "text-gray-800" : "text-white";
+  const subtitleClasses = theme === 'light' ? "text-gray-600" : "text-white/80";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className={themeClasses}>
+      <Header />
+      
       <div className="absolute inset-0 opacity-20">
         <div className="w-full h-full" style={{
           backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")"
@@ -321,13 +334,13 @@ const Index = () => {
             <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full">
               <Mic className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white">
-              AI Speech Studio
+            <h1 className={`text-4xl md:text-5xl font-bold ${textClasses}`}>
+              {t('title')}
             </h1>
             <Sparkles className="w-8 h-8 text-yellow-400 animate-pulse" />
           </div>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto">
-            ระบบถอดเสียงและสร้างเสียงด้วย Gemini AI รองรับภาษาไทยอย่างสมบูรณ์
+          <p className={`text-xl ${subtitleClasses} max-w-2xl mx-auto`}>
+            {t('subtitle')}
           </p>
         </div>
 
@@ -364,15 +377,15 @@ const Index = () => {
         </div>
 
         <div className="text-center mt-16 pt-8 border-t border-white/10">
-          <p className="text-white/60 text-sm">
-            พัฒนาด้วย ❤️ โดยใช้ Gemini AI และ Web Speech API
+          <p className={`${subtitleClasses} text-sm`}>
+            {t('footer')}
           </p>
-          <div className="flex items-center justify-center gap-4 mt-4 text-xs text-white/50">
-            <span>รองรับไฟล์เสียงทุกประเภท</span>
+          <div className={`flex items-center justify-center gap-4 mt-4 text-xs ${subtitleClasses}`}>
+            <span>{t('supportAllAudio')}</span>
             <span>•</span>
-            <span>ขนาดไม่เกิน 10MB</span>
+            <span>{t('maxSize')}</span>
             <span>•</span>
-            <span>ข้อมูลปลอดภัย 100%</span>
+            <span>{t('secureData')}</span>
           </div>
         </div>
       </div>
