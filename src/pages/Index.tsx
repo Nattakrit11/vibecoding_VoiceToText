@@ -108,27 +108,46 @@ const Index = () => {
     }
   };
 
-  // จำลองการเรียก Botnoi API สำหรับสร้างเสียง
+  // เรียกใช้ Botnoi API สำหรับสร้างเสียงจากข้อความ
   const handleTextToSpeech = async (text: string) => {
     setIsGeneratingAudio(true);
     
     try {
-      // จำลองการเรียก API (ในการใช้งานจริงจะใช้โค้ดที่ให้มา)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // เรียกใช้ Botnoi API
+      const response = await fetch('https://api-voice.botnoi.ai/openapi/v1/generate_audio', {
+        method: 'POST',
+        headers: {
+          'Botnoi-Token': 'YOUR_API_KEY', // ต้องแทนที่ด้วย API Key จริง
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: text,
+          speaker: "1",
+          volume: "1",
+          speed: 1,
+          type_media: "mp3",
+          save_file: "true",
+          language: "th"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate audio');
+      }
+
+      const result = await response.json();
+      console.log('Audio generation result:', result);
       
       toast({
         title: "สร้างเสียงสำเร็จ",
-        description: "ไฟล์เสียงถูกสร้างเรียบร้อยแล้ว (จำลอง)"
+        description: "ไฟล์เสียงถูกสร้างเรียบร้อยแล้ว"
       });
-      
-      console.log("Text to convert:", text);
-      // ในการใช้งานจริงจะมีการดาวน์โหลดไฟล์เสียง
       
     } catch (error) {
       console.error('Error generating audio:', error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถสร้างเสียงได้",
+        description: "ไม่สามารถสร้างเสียงได้ (ต้องการ Botnoi API Key)",
         variant: "destructive"
       });
     } finally {
@@ -155,11 +174,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%239C92AC\" fill-opacity=\"0.1\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"2\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+      <div className="absolute inset-0 opacity-20">
+        <div className="w-full h-full" style={{
+          backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")"
+        }}></div>
+      </div>
       
       <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full">
@@ -175,9 +196,7 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Main Content */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column */}
           <div className="lg:col-span-2 space-y-8">
             <ApiSettings 
               apiKey={apiKey}
@@ -197,7 +216,6 @@ const Index = () => {
             />
           </div>
 
-          {/* Right Column */}
           <div>
             <HistoryPanel
               history={history}
@@ -207,7 +225,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-16 pt-8 border-t border-white/10">
           <p className="text-white/60 text-sm">
             พัฒนาด้วย ❤️ โดยใช้ Gemini AI และ Botnoi API
