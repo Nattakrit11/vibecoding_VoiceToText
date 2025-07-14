@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import ApiSettings from '@/components/ApiSettings';
@@ -13,6 +12,7 @@ const Index = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
   const { toast } = useToast();
 
   // โหลดข้อมูลจาก localStorage เมื่อเริ่มต้น
@@ -89,7 +89,7 @@ const Index = () => {
           contents: [{
             parts: [
               {
-                text: "กرุณาถอดเสียงจากไฟล์เสียงนี้เป็นข้อความภาษาไทย"
+                text: "กรุณาถอดเสียงจากไฟล์เสียงนี้เป็นข้อความภาษาไทย"
               },
               {
                 inline_data: {
@@ -177,6 +177,7 @@ const Index = () => {
       
       // สร้าง utterance object
       const utterance = new SpeechSynthesisUtterance(text);
+      setCurrentUtterance(utterance);
       
       // ตั้งค่าเสียง
       utterance.lang = 'th-TH'; // ภาษาไทย
@@ -198,6 +199,7 @@ const Index = () => {
 
       utterance.onend = () => {
         setIsGeneratingAudio(false);
+        setCurrentUtterance(null);
         toast({
           title: "เล่นเสียงเสร็จสิ้น",
           description: "การแปลงข้อความเป็นเสียงเสร็จสมบูรณ์แล้ว"
@@ -207,6 +209,7 @@ const Index = () => {
       utterance.onerror = (event) => {
         console.error('Speech synthesis error:', event);
         setIsGeneratingAudio(false);
+        setCurrentUtterance(null);
         toast({
           title: "เกิดข้อผิดพลาด",
           description: "ไม่สามารถแปลงข้อความเป็นเสียงได้",
@@ -220,9 +223,57 @@ const Index = () => {
     } catch (error) {
       console.error('Error generating speech:', error);
       setIsGeneratingAudio(false);
+      setCurrentUtterance(null);
       toast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถแปลงข้อความเป็นเสียงได้",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // หยุดการแปลงข้อความเป็นเสียง
+  const handleStopTextToSpeech = () => {
+    speechSynthesis.cancel();
+    setIsGeneratingAudio(false);
+    setCurrentUtterance(null);
+    toast({
+      title: "หยุดการเล่นเสียงแล้ว",
+      description: "การแปลงข้อความเป็นเสียงถูกหยุดแล้ว"
+    });
+  };
+
+  // ดาวน์โหลดข้อความเป็นไฟล์
+  const handleDownloadText = (text: string) => {
+    if (!text.trim()) {
+      toast({
+        title: "ไม่มีข้อความ",
+        description: "ไม่มีข้อความให้ดาวน์โหลด",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `transcription_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "ดาวน์โหลดสำเร็จ",
+        description: "ไฟล์ข้อความถูกดาวน์โหลดแล้ว"
+      });
+    } catch (error) {
+      console.error('Error downloading text:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถดาวน์โหลดไฟล์ได้",
         variant: "destructive"
       });
     }
@@ -234,6 +285,17 @@ const Index = () => {
     toast({
       title: "ล้างประวัติแล้ว",
       description: "ประวัติการใช้งานถูกลบออกแล้ว"
+    });
+  };
+
+  // ลบรายการประวัติแต่ละอัน
+  const handleDeleteHistoryItem = (itemId: string) => {
+    const updatedHistory = history.filter(item => item.id !== itemId);
+    setHistory(updatedHistory);
+    localStorage.setItem('transcription-history', JSON.stringify(updatedHistory));
+    toast({
+      title: "ลบรายการแล้ว",
+      description: "รายการประวัติถูกลบออกแล้ว"
     });
   };
 
@@ -285,6 +347,8 @@ const Index = () => {
               transcription={transcription}
               isLoading={isProcessing}
               onTextToSpeech={handleTextToSpeech}
+              onStopTextToSpeech={handleStopTextToSpeech}
+              onDownloadText={handleDownloadText}
               isGeneratingAudio={isGeneratingAudio}
             />
           </div>
@@ -293,6 +357,7 @@ const Index = () => {
             <HistoryPanel
               history={history}
               onClearHistory={handleClearHistory}
+              onDeleteItem={handleDeleteHistoryItem}
               onSelectItem={handleSelectHistoryItem}
             />
           </div>

@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, FileAudio, FileText, Trash2, Clock } from 'lucide-react';
+import { History, FileAudio, FileText, Trash2, Clock, X } from 'lucide-react';
 
 export interface HistoryItem {
   id: string;
@@ -17,12 +17,14 @@ export interface HistoryItem {
 interface HistoryPanelProps {
   history: HistoryItem[];
   onClearHistory: () => void;
+  onDeleteItem: (itemId: string) => void;
   onSelectItem: (item: HistoryItem) => void;
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({
   history,
   onClearHistory,
+  onDeleteItem,
   onSelectItem
 }) => {
   const formatDate = (date: Date) => {
@@ -33,6 +35,19 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       hour: '2-digit',
       minute: '2-digit'
     }).format(date);
+  };
+
+  const handleItemClick = (item: HistoryItem, event: React.MouseEvent) => {
+    // ถ้าคลิกที่ปุ่มลบ ไม่ให้เลือกรายการ
+    if ((event.target as HTMLElement).closest('.delete-button')) {
+      return;
+    }
+    onSelectItem(item);
+  };
+
+  const handleDeleteClick = (itemId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    onDeleteItem(itemId);
   };
 
   return (
@@ -70,10 +85,19 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
               {history.map((item) => (
                 <div
                   key={item.id}
-                  className="p-4 bg-white/10 rounded-lg hover:bg-white/15 transition-all duration-200 cursor-pointer"
-                  onClick={() => onSelectItem(item)}
+                  className="p-4 bg-white/10 rounded-lg hover:bg-white/15 transition-all duration-200 cursor-pointer relative"
+                  onClick={(e) => handleItemClick(item, e)}
                 >
-                  <div className="flex items-start gap-3">
+                  <Button
+                    onClick={(e) => handleDeleteClick(item.id, e)}
+                    variant="ghost"
+                    size="sm"
+                    className="delete-button absolute top-2 right-2 text-white/50 hover:text-red-400 hover:bg-red-500/20 w-8 h-8 p-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                  
+                  <div className="flex items-start gap-3 pr-8">
                     <FileAudio className="w-5 h-5 text-blue-400 mt-1 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">

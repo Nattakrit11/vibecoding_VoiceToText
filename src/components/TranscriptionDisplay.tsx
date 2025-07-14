@@ -3,13 +3,15 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Copy, Volume2, Loader2 } from 'lucide-react';
+import { FileText, Copy, Volume2, Loader2, Square, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface TranscriptionDisplayProps {
   transcription: string;
   isLoading: boolean;
   onTextToSpeech: (text: string) => void;
+  onStopTextToSpeech: () => void;
+  onDownloadText: (text: string) => void;
   isGeneratingAudio: boolean;
 }
 
@@ -17,6 +19,8 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   transcription,
   isLoading,
   onTextToSpeech,
+  onStopTextToSpeech,
+  onDownloadText,
   isGeneratingAudio
 }) => {
   const { toast } = useToast();
@@ -40,6 +44,12 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   const handleTextToSpeech = () => {
     if (transcription.trim()) {
       onTextToSpeech(transcription);
+    }
+  };
+
+  const handleDownloadText = () => {
+    if (transcription.trim()) {
+      onDownloadText(transcription);
     }
   };
 
@@ -70,32 +80,42 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
             />
             
             {transcription && (
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={copyToClipboard}
                   variant="outline"
-                  className="flex-1 bg-white/10 border-white/30 text-white hover:bg-white/20"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   คัดลอกข้อความ
                 </Button>
+                
                 <Button
-                  onClick={handleTextToSpeech}
-                  disabled={isGeneratingAudio}
-                  className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                  onClick={handleDownloadText}
+                  variant="outline"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
                 >
-                  {isGeneratingAudio ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      กำลังสร้างเสียง...
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="w-4 h-4 mr-2" />
-                      แปลงข้อความเป็นเสียง
-                    </>
-                  )}
+                  <Download className="w-4 h-4 mr-2" />
+                  ดาวน์โหลดข้อความ
                 </Button>
+                
+                {!isGeneratingAudio ? (
+                  <Button
+                    onClick={handleTextToSpeech}
+                    className="col-span-2 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                  >
+                    <Volume2 className="w-4 h-4 mr-2" />
+                    แปลงข้อความเป็นเสียง
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={onStopTextToSpeech}
+                    className="col-span-2 bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800"
+                  >
+                    <Square className="w-4 h-4 mr-2" />
+                    หยุดการเล่นเสียง
+                  </Button>
+                )}
               </div>
             )}
           </div>
