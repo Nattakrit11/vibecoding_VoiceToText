@@ -47,7 +47,22 @@ const Index = () => {
     });
   };
 
-  // จำลองการเรียก Gemini API สำหรับถอดเสียง
+  // แปลงไฟล์เสียงเป็น base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // ลบ prefix "data:audio/...;base64," ออก
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // เรียกใช้ Gemini API สำหรับถอดเสียง
   const handleFileUpload = async (file: File) => {
     if (!apiKey) {
       toast({
@@ -61,46 +76,71 @@ const Index = () => {
     setIsProcessing(true);
     
     try {
-      // จำลองการประมวลผล (ในการใช้งานจริงจะเรียก Gemini API)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // แปลงไฟล์เป็น base64
+      const base64Audio = await fileToBase64(file);
       
-      // ข้อความตัวอย่าง (ในการใช้งานจริงจะได้จาก API)
-      const mockTranscription = `ข้อความตัวอย่างจากการถอดเสียงไฟล์ "${file.name}" 
-      
-สวัสดีครับ ยินดีต้อนรับสู่ระบบถอดเสียงเป็นข้อความด้วย AI 
-ระบบนี้สามารถถอดเสียงภาษาไทยได้อย่างแม่นยำ 
-และยังสามารถแปลงข้อความกลับเป็นเสียงได้อีกด้วย
-
-ขอบคุณที่ใช้บริการของเรา`;
-
-      setTranscription(mockTranscription);
-      
-      // เพิ่มลงประวัติ
-      const newHistoryItem: HistoryItem = {
-        id: Date.now().toString(),
-        fileName: file.name,
-        fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-        fileType: file.type,
-        transcription: mockTranscription,
-        timestamp: new Date()
-      };
-      
-      const updatedHistory = [newHistoryItem, ...history];
-      setHistory(updatedHistory);
-      
-      // บันทึกประวัติลง localStorage
-      localStorage.setItem('transcription-history', JSON.stringify(updatedHistory));
-      
-      toast({
-        title: "ถอดเสียงสำเร็จ",
-        description: "ไฟล์เสียงถูกแปลงเป็นข้อความแล้ว"
+      // เรียกใช้ Gemini API
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                text: "กرุณาถอดเสียงจากไฟล์เสียงนี้เป็นข้อความภาษาไทย"
+              },
+              {
+                inline_data: {
+                  mime_type: file.type,
+                  data: base64Audio
+                }
+              }
+            ]
+          }]
+        })
       });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+        const transcribedText = result.candidates[0].content.parts[0].text;
+        setTranscription(transcribedText);
+        
+        // เพิ่มลงประวัติ
+        const newHistoryItem: HistoryItem = {
+          id: Date.now().toString(),
+          fileName: file.name,
+          fileSize: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+          fileType: file.type,
+          transcription: transcribedText,
+          timestamp: new Date()
+        };
+        
+        const updatedHistory = [newHistoryItem, ...history];
+        setHistory(updatedHistory);
+        
+        // บันทึกประวัติลง localStorage
+        localStorage.setItem('transcription-history', JSON.stringify(updatedHistory));
+        
+        toast({
+          title: "ถอดเสียงสำเร็จ",
+          description: "ไฟล์เสียงถูกแปลงเป็นข้อความด้วย Gemini AI แล้ว"
+        });
+      } else {
+        throw new Error('ไม่สามารถถอดเสียงได้');
+      }
       
     } catch (error) {
       console.error('Error processing audio:', error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถถอดเสียงได้",
+        description: "ไม่สามารถถอดเสียงได้ กรุณาตรวจสอบ API Key หรือไฟล์เสียง",
         variant: "destructive"
       });
     } finally {
@@ -108,50 +148,83 @@ const Index = () => {
     }
   };
 
-  // เรียกใช้ Botnoi API สำหรับสร้างเสียงจากข้อความ
+  // ใช้ Web Speech API ของเบราว์เซอร์สำหรับแปลงข้อความเป็นเสียง
   const handleTextToSpeech = async (text: string) => {
+    if (!text.trim()) {
+      toast({
+        title: "ไม่มีข้อความ",
+        description: "กรุณาใส่ข้อความที่ต้องการแปลงเป็นเสียง",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // ตรวจสอบว่าเบราว์เซอร์รองรับ Speech Synthesis หรือไม่
+    if (!('speechSynthesis' in window)) {
+      toast({
+        title: "ไม่รองรับ",
+        description: "เบราว์เซอร์ของคุณไม่รองรับการแปลงข้อความเป็นเสียง",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsGeneratingAudio(true);
     
     try {
-      // เรียกใช้ Botnoi API
-      const response = await fetch('https://api-voice.botnoi.ai/openapi/v1/generate_audio', {
-        method: 'POST',
-        headers: {
-          'Botnoi-Token': 'YOUR_API_KEY', // ต้องแทนที่ด้วย API Key จริง
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          text: text,
-          speaker: "1",
-          volume: "1",
-          speed: 1,
-          type_media: "mp3",
-          save_file: "true",
-          language: "th"
-        })
-      });
+      // หยุดการพูดที่กำลังทำงานอยู่
+      speechSynthesis.cancel();
+      
+      // สร้าง utterance object
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // ตั้งค่าเสียง
+      utterance.lang = 'th-TH'; // ภาษาไทย
+      utterance.rate = 0.9; // ความเร็วในการพูด
+      utterance.pitch = 1; // ระดับเสียง
+      utterance.volume = 1; // ระดับความดัง
 
-      if (!response.ok) {
-        throw new Error('Failed to generate audio');
+      // ลองหาเสียงภาษาไทยจากที่มีอยู่
+      const voices = speechSynthesis.getVoices();
+      const thaiVoice = voices.find(voice => voice.lang.includes('th') || voice.lang.includes('TH'));
+      if (thaiVoice) {
+        utterance.voice = thaiVoice;
       }
 
-      const result = await response.json();
-      console.log('Audio generation result:', result);
-      
-      toast({
-        title: "สร้างเสียงสำเร็จ",
-        description: "ไฟล์เสียงถูกสร้างเรียบร้อยแล้ว"
-      });
+      // Event listeners
+      utterance.onstart = () => {
+        console.log('เริ่มการพูด');
+      };
+
+      utterance.onend = () => {
+        setIsGeneratingAudio(false);
+        toast({
+          title: "เล่นเสียงเสร็จสิ้น",
+          description: "การแปลงข้อความเป็นเสียงเสร็จสมบูรณ์แล้ว"
+        });
+      };
+
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        setIsGeneratingAudio(false);
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถแปลงข้อความเป็นเสียงได้",
+          variant: "destructive"
+        });
+      };
+
+      // เริ่มการพูด
+      speechSynthesis.speak(utterance);
       
     } catch (error) {
-      console.error('Error generating audio:', error);
+      console.error('Error generating speech:', error);
+      setIsGeneratingAudio(false);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถสร้างเสียงได้ (ต้องการ Botnoi API Key)",
+        description: "ไม่สามารถแปลงข้อความเป็นเสียงได้",
         variant: "destructive"
       });
-    } finally {
-      setIsGeneratingAudio(false);
     }
   };
 
@@ -192,7 +265,7 @@ const Index = () => {
             <Sparkles className="w-8 h-8 text-yellow-400 animate-pulse" />
           </div>
           <p className="text-xl text-white/80 max-w-2xl mx-auto">
-            ระบบถอดเสียงและสร้างเสียงด้วย AI ที่ทันสมัย รองรับภาษาไทยอย่างสมบูรณ์
+            ระบบถอดเสียงและสร้างเสียงด้วย Gemini AI รองรับภาษาไทยอย่างสมบูรณ์
           </p>
         </div>
 
@@ -227,7 +300,7 @@ const Index = () => {
 
         <div className="text-center mt-16 pt-8 border-t border-white/10">
           <p className="text-white/60 text-sm">
-            พัฒนาด้วย ❤️ โดยใช้ Gemini AI และ Botnoi API
+            พัฒนาด้วย ❤️ โดยใช้ Gemini AI และ Web Speech API
           </p>
           <div className="flex items-center justify-center gap-4 mt-4 text-xs text-white/50">
             <span>รองรับไฟล์เสียงทุกประเภท</span>
