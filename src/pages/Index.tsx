@@ -43,14 +43,10 @@ const Index = () => {
     }
   }, []);
 
-  // บันทึก API Key ลง localStorage
+  // บันทึก API Key ลง localStorage (auto-save, no toast)
   const handleApiKeyChange = (newApiKey: string) => {
     setApiKey(newApiKey);
     localStorage.setItem('gemini-api-key', newApiKey);
-    toast({
-      title: t('apiKeySaved'),
-      description: t('apiKeySavedDesc')
-    });
   };
 
   // แปลงไฟล์เสียงเป็น base64
@@ -348,10 +344,12 @@ Gain: [ประโยชน์/สิ่งดีที่พบในเนื
 
   const themeClasses = theme === 'light' 
     ? "min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100"
-    : "min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900";
+    : theme === 'light-blue'
+    ? "min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-100"
+    : "min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900";
 
-  const textClasses = theme === 'light' ? "text-gray-800" : "text-white";
-  const subtitleClasses = theme === 'light' ? "text-gray-600" : "text-white/80";
+  const textClasses = theme === 'light' || theme === 'light-blue' ? "text-gray-800" : "text-white";
+  const subtitleClasses = theme === 'light' || theme === 'light-blue' ? "text-gray-600" : "text-white/80";
 
   return (
     <div className={themeClasses}>
