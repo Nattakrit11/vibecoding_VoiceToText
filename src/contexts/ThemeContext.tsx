@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'dark' | 'light';
+type Theme = 'dark' | 'light' | 'light-blue';
 
 interface ThemeContextType {
   theme: Theme;
@@ -15,10 +15,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('app-theme') as Theme;
-    if (savedTheme && (savedTheme === 'dark' || savedTheme === 'light')) {
+    if (savedTheme && (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'light-blue')) {
       setTheme(savedTheme);
     }
   }, []);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark', 'light-blue');
+    root.classList.add(theme);
+  }, [theme]);
 
   const handleSetTheme = (newTheme: Theme) => {
     setTheme(newTheme);

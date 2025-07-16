@@ -101,9 +101,9 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   const sections = parseTranscription(transcription);
 
   return (
-    <Card className="backdrop-blur-md bg-white/10 border-white/20 shadow-xl">
+    <Card className="bg-card/80 border-border backdrop-blur-md shadow-xl">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
+        <CardTitle className="flex items-center gap-2 text-foreground">
           <FileText className="w-5 h-5" />
           {t('transcriptionTitle')}
         </CardTitle>
@@ -112,9 +112,9 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-white/70" />
-              <p className="text-white/90">{t('processing')}</p>
-              <p className="text-white/60 text-sm mt-2">{t('pleaseWait')}</p>
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+              <p className="text-foreground">{t('processing')}</p>
+              <p className="text-muted-foreground text-sm mt-2">{t('pleaseWait')}</p>
             </div>
           </div>
         ) : (
@@ -124,33 +124,33 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
                 {sections.map((section, index) => {
                   if (section.type === 'generated') {
                     return (
-                      <div key={index} className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-                        <p className="text-sm font-medium text-yellow-800">
+                      <div key={index} className="bg-primary/10 border-l-4 border-primary p-3 rounded-md">
+                        <p className="text-sm font-medium text-foreground">
                           Transcription Generated: {section.content}
                         </p>
                       </div>
                     );
                   } else if (section.type === 'transcription') {
                     return (
-                      <div key={index} className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
-                        <h3 className="font-bold text-blue-800 mb-2">TRANSCRIPTION</h3>
-                        <div className="text-blue-900 leading-relaxed whitespace-pre-wrap">
+                      <div key={index} className="bg-accent/50 border-l-4 border-primary p-4 rounded-md">
+                        <h3 className="font-bold text-foreground mb-2">TRANSCRIPTION</h3>
+                        <div className="text-foreground leading-relaxed whitespace-pre-wrap">
                           {section.content}
                         </div>
                       </div>
                     );
                   } else if (section.type === 'summary') {
                     return (
-                      <div key={index} className="bg-green-50 border-l-4 border-green-400 p-4 rounded">
-                        <h3 className="font-bold text-green-800 mb-3">SUMMARY</h3>
+                      <div key={index} className="bg-secondary/50 border-l-4 border-ring p-4 rounded-md">
+                        <h3 className="font-bold text-foreground mb-3">SUMMARY</h3>
                         <div className="space-y-2">
-                          <div className="bg-red-50 p-2 rounded border-l-2 border-red-300">
-                            <span className="font-semibold text-red-800">Pain: </span>
-                            <span className="text-red-700">{section.pain}</span>
+                          <div className="bg-destructive/10 p-2 rounded border-l-2 border-destructive">
+                            <span className="font-semibold text-foreground">Pain: </span>
+                            <span className="text-foreground">{section.pain}</span>
                           </div>
-                          <div className="bg-green-100 p-2 rounded border-l-2 border-green-300">
-                            <span className="font-semibold text-green-800">Gain: </span>
-                            <span className="text-green-700">{section.gain}</span>
+                          <div className="bg-primary/10 p-2 rounded border-l-2 border-primary">
+                            <span className="font-semibold text-foreground">Gain: </span>
+                            <span className="text-foreground">{section.gain}</span>
                           </div>
                         </div>
                       </div>
@@ -164,7 +164,7 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
                 value=""
                 placeholder={t('transcriptionPlaceholder')}
                 readOnly
-                className="min-h-[200px] bg-white/10 border-white/30 text-white placeholder:text-white/50 resize-none"
+                className="min-h-[200px] bg-muted/50 border-border text-foreground placeholder:text-muted-foreground resize-none"
               />
             )}
             
@@ -173,7 +173,7 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
                 <Button
                   onClick={copyToClipboard}
                   variant="outline"
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                  className="bg-card/50 border-border text-foreground hover:bg-accent"
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   {t('copyText')}
@@ -182,7 +182,7 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
                 <Button
                   onClick={handleDownloadText}
                   variant="outline"
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                  className="bg-card/50 border-border text-foreground hover:bg-accent"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   {t('downloadText')}
@@ -191,7 +191,7 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
                 {!isGeneratingAudio ? (
                   <Button
                     onClick={handleTextToSpeech}
-                    className="col-span-2 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                    className="col-span-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     <Volume2 className="w-4 h-4 mr-2" />
                     {t('textToSpeech')}
@@ -199,7 +199,7 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
                 ) : (
                   <Button
                     onClick={onStopTextToSpeech}
-                    className="col-span-2 bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800"
+                    className="col-span-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                   >
                     <Square className="w-4 h-4 mr-2" />
                     {t('stopSpeech')}

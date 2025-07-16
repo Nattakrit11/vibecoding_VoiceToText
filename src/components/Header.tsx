@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Globe, Sun, Moon } from 'lucide-react';
+import { Globe, Sun, Moon, Palette } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -14,7 +14,26 @@ const Header: React.FC = () => {
   };
 
   const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+    if (theme === 'dark') {
+      setTheme('light');
+    } else if (theme === 'light') {
+      setTheme('light-blue');
+    } else {
+      setTheme('dark');
+    }
+  };
+
+  const getThemeIcon = () => {
+    switch (theme) {
+      case 'dark':
+        return <Moon className="w-4 h-4" />;
+      case 'light':
+        return <Sun className="w-4 h-4" />;
+      case 'light-blue':
+        return <Palette className="w-4 h-4" />;
+      default:
+        return <Moon className="w-4 h-4" />;
+    }
   };
 
   return (
@@ -23,7 +42,7 @@ const Header: React.FC = () => {
         onClick={toggleLanguage}
         variant="outline"
         size="sm"
-        className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md"
+        className="bg-card/80 border-border text-foreground hover:bg-accent backdrop-blur-md"
       >
         <Globe className="w-4 h-4 mr-2" />
         {language.toUpperCase()}
@@ -33,9 +52,9 @@ const Header: React.FC = () => {
         onClick={toggleTheme}
         variant="outline"
         size="sm"
-        className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md"
+        className="bg-card/80 border-border text-foreground hover:bg-accent backdrop-blur-md"
       >
-        {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        {getThemeIcon()}
       </Button>
     </div>
   );
