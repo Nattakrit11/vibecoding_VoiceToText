@@ -55,6 +55,53 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
     }
   };
 
+  // Function to format transcription text with better styling
+  const formatTranscription = (text: string) => {
+    if (!text) return text;
+    
+    const lines = text.split('\n');
+    return lines.map((line, index) => {
+      if (line.startsWith('Transcription Generated:')) {
+        return (
+          <div key={index} className="text-yellow-300 font-semibold mb-4 text-sm">
+            {line}
+          </div>
+        );
+      } else if (line === 'TRANSCRIPTION:') {
+        return (
+          <div key={index} className="text-blue-300 font-bold text-lg mb-2 mt-4">
+            {line}
+          </div>
+        );
+      } else if (line === 'SUMMARY:') {
+        return (
+          <div key={index} className="text-green-300 font-bold text-lg mb-2 mt-4">
+            {line}
+          </div>
+        );
+      } else if (line.startsWith('Pain:')) {
+        return (
+          <div key={index} className="text-red-300 ml-2 mb-1">
+            <span className="font-semibold">Pain:</span> {line.substring(5)}
+          </div>
+        );
+      } else if (line.startsWith('Gain:')) {
+        return (
+          <div key={index} className="text-green-300 ml-2 mb-1">
+            <span className="font-semibold">Gain:</span> {line.substring(5)}
+          </div>
+        );
+      } else if (line.trim()) {
+        return (
+          <div key={index} className="text-white/90 mb-1 leading-relaxed">
+            {line}
+          </div>
+        );
+      }
+      return <div key={index} className="mb-1"></div>;
+    });
+  };
+
   return (
     <Card className="backdrop-blur-md bg-white/10 border-white/20 shadow-xl">
       <CardHeader>
@@ -74,12 +121,18 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            <Textarea
-              value={transcription}
-              placeholder={t('transcriptionPlaceholder')}
-              readOnly
-              className="min-h-[200px] bg-white/10 border-white/30 text-white placeholder:text-white/50 resize-none"
-            />
+            {transcription ? (
+              <div className="bg-white/5 border border-white/20 rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
+                {formatTranscription(transcription)}
+              </div>
+            ) : (
+              <Textarea
+                value=""
+                placeholder={t('transcriptionPlaceholder')}
+                readOnly
+                className="min-h-[200px] bg-white/10 border-white/30 text-white placeholder:text-white/50 resize-none"
+              />
+            )}
             
             {transcription && (
               <div className="grid grid-cols-2 gap-2">
