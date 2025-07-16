@@ -124,7 +124,7 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
                 {sections.map((section, index) => {
                   if (section.type === 'generated') {
                     return (
-                      <div key={index} className="bg-primary/10 border-l-4 border-primary p-3 rounded-md">
+                      <div key={index} className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
                         <p className="text-sm font-medium text-foreground">
                           Transcription Generated: {section.content}
                         </p>
@@ -132,24 +132,24 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
                     );
                   } else if (section.type === 'transcription') {
                     return (
-                      <div key={index} className="bg-accent/50 border-l-4 border-primary p-4 rounded-md">
-                        <h3 className="font-bold text-foreground mb-2">TRANSCRIPTION</h3>
-                        <div className="text-foreground leading-relaxed whitespace-pre-wrap">
+                      <div key={index} className="bg-slate-500/10 border border-slate-500/20 rounded-lg p-4">
+                        <h3 className="font-bold text-foreground mb-3 text-lg">TRANSCRIPTION</h3>
+                        <div className="text-foreground leading-relaxed whitespace-pre-wrap text-base">
                           {section.content}
                         </div>
                       </div>
                     );
                   } else if (section.type === 'summary') {
                     return (
-                      <div key={index} className="bg-secondary/50 border-l-4 border-ring p-4 rounded-md">
-                        <h3 className="font-bold text-foreground mb-3">SUMMARY</h3>
-                        <div className="space-y-2">
-                          <div className="bg-destructive/10 p-2 rounded border-l-2 border-destructive">
-                            <span className="font-semibold text-foreground">Pain: </span>
+                      <div key={index} className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
+                        <h3 className="font-bold text-foreground mb-4 text-lg">SUMMARY</h3>
+                        <div className="space-y-3">
+                          <div className="bg-red-500/15 border border-red-500/30 p-3 rounded-lg">
+                            <span className="font-semibold text-red-300">Pain: </span>
                             <span className="text-foreground">{section.pain}</span>
                           </div>
-                          <div className="bg-primary/10 p-2 rounded border-l-2 border-primary">
-                            <span className="font-semibold text-foreground">Gain: </span>
+                          <div className="bg-green-500/15 border border-green-500/30 p-3 rounded-lg">
+                            <span className="font-semibold text-green-300">Gain: </span>
                             <span className="text-foreground">{section.gain}</span>
                           </div>
                         </div>

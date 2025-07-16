@@ -17,6 +17,7 @@ const Index = () => {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const { toast } = useToast();
   const { t } = useLanguage();
   const { theme } = useTheme();
@@ -75,6 +76,7 @@ const Index = () => {
       return;
     }
 
+    setUploadedFile(file);
     setIsProcessing(true);
     
     try {
@@ -387,6 +389,7 @@ Gain: [ประโยชน์/สิ่งดีที่พบในเนื
             <AudioUpload 
               onFileUpload={handleFileUpload}
               isProcessing={isProcessing}
+              uploadedFile={uploadedFile}
             />
             
             <TranscriptionDisplay
