@@ -12,6 +12,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 const Index = () => {
   const [apiKey, setApiKey] = useState('');
   const [transcription, setTranscription] = useState('');
+  const [transcriptionContent, setTranscriptionContent] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -84,6 +85,18 @@ const Index = () => {
       // แปลงไฟล์เป็น base64
       const base64Audio = await fileToBase64(file);
       
+      // สร้าง timestamp จริง
+      const now = new Date();
+      const timestamp = now.toLocaleDateString('th-TH', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }) + ' ' + now.toLocaleTimeString('th-TH', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      
       // เรียกใช้ Gemini API
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -96,12 +109,12 @@ const Index = () => {
               {
                 text: `กรุณาถอดเสียงจากไฟล์เสียงนี้เป็นข้อความภาษาไทย และจัดรูปแบบดังนี้:
 
-1. ใส่วันที่และเวลาที่ถอดข้อความ
+1. ใส่วันที่และเวลาที่ถอดข้อความ: Transcription Generated: ${timestamp}
 2. แสดงข้อความที่ถอดได้
 3. สรุป Pain Points และ Gain Points จากเนื้อหา
 
 รูปแบบที่ต้องการ:
-Transcription Generated: [วันที่/เดือน/ปี เวลา]
+Transcription Generated: ${timestamp}
 
 TRANSCRIPTION:
 [ข้อความที่ถอดได้จากเสียง]
@@ -133,6 +146,11 @@ Gain: [ประโยชน์/สิ่งดีที่พบในเนื
       if (result.candidates && result.candidates[0] && result.candidates[0].content) {
         const transcribedText = result.candidates[0].content.parts[0].text;
         setTranscription(transcribedText);
+        
+        // แยกเฉพาะส่วน TRANSCRIPTION content
+        const transcriptionMatch = transcribedText.match(/TRANSCRIPTION:\s*\n([\s\S]*?)(?=\n\s*SUMMARY:|$)/);
+        const contentOnly = transcriptionMatch ? transcriptionMatch[1].trim() : transcribedText;
+        setTranscriptionContent(contentOnly);
         
         // เพิ่มลงประวัติ
         const newHistoryItem: HistoryItem = {
@@ -183,7 +201,7 @@ Gain: [ประโยชน์/สิ่งดีที่พบในเนื
 
   // ดาวน์โหลดข้อความเป็นไฟล์
   const handleDownloadText = (text: string) => {
-    if (!text.trim()) {
+    if (!transcriptionContent.trim()) {
       toast({
         title: "ไม่มีข้อความ",
         description: "ไม่มีข้อความให้ดาวน์โหลด",
@@ -193,7 +211,7 @@ Gain: [ประโยชน์/สิ่งดีที่พบในเนื
     }
 
     try {
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const blob = new Blob([transcriptionContent], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -247,7 +265,7 @@ Gain: [ประโยชน์/สิ่งดีที่พบในเนื
 
   // Improved text-to-speech function with immediate playback
   const handleTextToSpeech = async (text: string) => {
-    if (!text.trim()) {
+    if (!transcriptionContent.trim()) {
       toast({
         title: "No Text",
         description: "Please enter text to convert to speech",
@@ -274,7 +292,7 @@ Gain: [ประโยชน์/สิ่งดีที่พบในเนื
       // Wait a bit for the cancel to take effect
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(transcriptionContent);
       setCurrentUtterance(utterance);
       
       utterance.lang = 'th-TH';
@@ -375,6 +393,7 @@ Gain: [ประโยชน์/สิ่งดีที่พบในเนื
             
             <TranscriptionDisplay
               transcription={transcription}
+              transcriptionContent={transcriptionContent}
               isLoading={isProcessing}
               onTextToSpeech={handleTextToSpeech}
               onStopTextToSpeech={handleStopTextToSpeech}

@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TranscriptionDisplayProps {
   transcription: string;
+  transcriptionContent: string;
   isLoading: boolean;
   onTextToSpeech: (text: string) => void;
   onStopTextToSpeech: () => void;
@@ -18,6 +19,7 @@ interface TranscriptionDisplayProps {
 
 const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   transcription,
+  transcriptionContent,
   isLoading,
   onTextToSpeech,
   onStopTextToSpeech,
@@ -29,7 +31,7 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(transcription);
+      await navigator.clipboard.writeText(transcriptionContent);
       toast({
         title: t('apiKeySaved'),
         description: t('copyText')
@@ -44,63 +46,59 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
   };
 
   const handleTextToSpeech = () => {
-    if (transcription.trim()) {
-      onTextToSpeech(transcription);
+    if (transcriptionContent.trim()) {
+      onTextToSpeech(transcriptionContent);
     }
   };
 
   const handleDownloadText = () => {
-    if (transcription.trim()) {
-      onDownloadText(transcription);
+    if (transcriptionContent.trim()) {
+      onDownloadText(transcriptionContent);
     }
   };
 
-  // Function to format transcription text with better styling
-  const formatTranscription = (text: string) => {
-    if (!text) return text;
+  // Function to parse and display transcription sections
+  const parseTranscription = (text: string) => {
+    if (!text) return null;
     
-    const lines = text.split('\n');
-    return lines.map((line, index) => {
-      if (line.startsWith('Transcription Generated:')) {
-        return (
-          <div key={index} className="text-yellow-300 font-semibold mb-4 text-sm">
-            {line}
-          </div>
-        );
-      } else if (line === 'TRANSCRIPTION:') {
-        return (
-          <div key={index} className="text-blue-300 font-bold text-lg mb-2 mt-4">
-            {line}
-          </div>
-        );
-      } else if (line === 'SUMMARY:') {
-        return (
-          <div key={index} className="text-green-300 font-bold text-lg mb-2 mt-4">
-            {line}
-          </div>
-        );
-      } else if (line.startsWith('Pain:')) {
-        return (
-          <div key={index} className="text-red-300 ml-2 mb-1">
-            <span className="font-semibold">Pain:</span> {line.substring(5)}
-          </div>
-        );
-      } else if (line.startsWith('Gain:')) {
-        return (
-          <div key={index} className="text-green-300 ml-2 mb-1">
-            <span className="font-semibold">Gain:</span> {line.substring(5)}
-          </div>
-        );
-      } else if (line.trim()) {
-        return (
-          <div key={index} className="text-white/90 mb-1 leading-relaxed">
-            {line}
-          </div>
-        );
-      }
-      return <div key={index} className="mb-1"></div>;
-    });
+    const sections = [];
+    
+    // Extract Transcription Generated
+    const generatedMatch = text.match(/Transcription Generated:\s*(.+)/);
+    if (generatedMatch) {
+      sections.push({
+        type: 'generated',
+        content: generatedMatch[1].trim()
+      });
+    }
+    
+    // Extract TRANSCRIPTION content
+    const transcriptionMatch = text.match(/TRANSCRIPTION:\s*\n([\s\S]*?)(?=\n\s*SUMMARY:|$)/);
+    if (transcriptionMatch) {
+      sections.push({
+        type: 'transcription',
+        content: transcriptionMatch[1].trim()
+      });
+    }
+    
+    // Extract SUMMARY content
+    const summaryMatch = text.match(/SUMMARY:\s*\n([\s\S]*)/);
+    if (summaryMatch) {
+      const summaryContent = summaryMatch[1].trim();
+      const painMatch = summaryContent.match(/Pain:\s*(.+)/);
+      const gainMatch = summaryContent.match(/Gain:\s*(.+)/);
+      
+      sections.push({
+        type: 'summary',
+        pain: painMatch ? painMatch[1].trim() : '',
+        gain: gainMatch ? gainMatch[1].trim() : ''
+      });
+    }
+    
+    return sections;
   };
+
+  const sections = parseTranscription(transcription);
 
   return (
     <Card className="backdrop-blur-md bg-white/10 border-white/20 shadow-xl">
@@ -121,9 +119,45 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {transcription ? (
-              <div className="bg-white/5 border border-white/20 rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
-                {formatTranscription(transcription)}
+            {sections && sections.length > 0 ? (
+              <div className="space-y-4">
+                {sections.map((section, index) => {
+                  if (section.type === 'generated') {
+                    return (
+                      <div key={index} className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+                        <p className="text-sm font-medium text-yellow-800">
+                          Transcription Generated: {section.content}
+                        </p>
+                      </div>
+                    );
+                  } else if (section.type === 'transcription') {
+                    return (
+                      <div key={index} className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+                        <h3 className="font-bold text-blue-800 mb-2">TRANSCRIPTION</h3>
+                        <div className="text-blue-900 leading-relaxed whitespace-pre-wrap">
+                          {section.content}
+                        </div>
+                      </div>
+                    );
+                  } else if (section.type === 'summary') {
+                    return (
+                      <div key={index} className="bg-green-50 border-l-4 border-green-400 p-4 rounded">
+                        <h3 className="font-bold text-green-800 mb-3">SUMMARY</h3>
+                        <div className="space-y-2">
+                          <div className="bg-red-50 p-2 rounded border-l-2 border-red-300">
+                            <span className="font-semibold text-red-800">Pain: </span>
+                            <span className="text-red-700">{section.pain}</span>
+                          </div>
+                          <div className="bg-green-100 p-2 rounded border-l-2 border-green-300">
+                            <span className="font-semibold text-green-800">Gain: </span>
+                            <span className="text-green-700">{section.gain}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
               </div>
             ) : (
               <Textarea
@@ -134,7 +168,7 @@ const TranscriptionDisplay: React.FC<TranscriptionDisplayProps> = ({
               />
             )}
             
-            {transcription && (
+            {transcriptionContent && (
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={copyToClipboard}
